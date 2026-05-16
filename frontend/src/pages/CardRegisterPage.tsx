@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getCardToken } from '@fincode/js';
 import type { FincodeInstance, FincodeUI } from '@fincode/js';
 
@@ -8,6 +9,7 @@ export default function CardRegisterPage() {
   const initStarted = useRef(false);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (initStarted.current) return;
@@ -36,12 +38,29 @@ export default function CardRegisterPage() {
         number: '1',
       });
       const formData = await uiRef.current.getFormData();
-      console.log('token:', tokenResult.list[0].token);
-      console.log('card_no:', tokenResult.card_no);
-      console.log('expire:', formData.expire);
-      console.log('holderName:', formData.holderName);
-    } catch {
-      setError('カード情報の取得に失敗しました。入力内容を確認してください。');
+      const token = tokenResult.list[0].token;
+
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/cards`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      if (!res.ok) {
+        const body = await res.json();
+        throw new Error(body.error ?? 'unknown error');
+      }
+      const card = await res.json();
+
+      navigate('/card', {
+        state: {
+          maskedCardNumber: card.masked_card_number,
+          expire: card.expire,
+          brand: card.brand,
+          holderName: formData.holderName,
+        },
+      });
+    } catch (e) {
+      setError(`カード登録に失敗しました: ${e}`);
     }
   };
 

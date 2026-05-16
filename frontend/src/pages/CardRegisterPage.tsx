@@ -37,7 +37,6 @@ export default function CardRegisterPage() {
         ui: uiRef.current,
         number: '1',
       });
-      const formData = await uiRef.current.getFormData();
       const token = tokenResult.list[0].token;
 
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/cards`, {
@@ -49,16 +48,8 @@ export default function CardRegisterPage() {
         const body = await res.json();
         throw new Error(body.error ?? 'unknown error');
       }
-      const card = await res.json();
 
-      navigate('/card', {
-        state: {
-          maskedCardNumber: card.masked_card_number,
-          expire: card.expire,
-          brand: card.brand,
-          holderName: formData.holderName,
-        },
-      });
+      navigate('/card');
     } catch (e) {
       setError(`カード登録に失敗しました: ${e}`);
     }

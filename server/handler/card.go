@@ -1,0 +1,104 @@
+package handler
+
+import (
+	"fincode-token-practice/server/domain"
+	"net/http"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+)
+
+type CardHandler struct {
+	customerRepo domain.CustomerRepository
+	cardRepo     domain.CardRepository
+	fincodeRepo  domain.FincodeRepository
+}
+
+func NewCardHandler(
+	customerRepo domain.CustomerRepository,
+	cardRepo domain.CardRepository,
+	fincodeRepo domain.FincodeRepository,
+) *CardHandler {
+	return &CardHandler{
+		customerRepo: customerRepo,
+		cardRepo:     cardRepo,
+		fincodeRepo:  fincodeRepo,
+	}
+}
+
+type registerCardRequest struct {
+	Token string `json:"token" binding:"required"`
+}
+
+type registerCardResponse struct {
+	MaskedCardNumber string `json:"masked_card_number"`
+	Expire           string `json:"expire"`
+	Brand            string `json:"brand"`
+}
+
+func (h *CardHandler) Register(c *gin.Context) {
+	var req registerCardRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// 1. カスタマーシングルトン upsert
+	customer, err := h.customerRepo.Get(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get customer"})
+		return
+	}
+	if customer == nil {
+		fincodeCustomerID := uuid.New().String()
+		if err := h.fincodeRepo.CreateCustomer(ctx, fincodeCustomerID, "test@example.com"); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create fincode customer"})
+			return
+		}
+		customer = &domain.Customer{
+			ID:                uuid.New(),
+			FincodeCustomerID: fincodeCustomerID,
+			CreatedAt:         time.Now(),
+		}
+		if err := h.customerRepo.Save(ctx, customer); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save customer"})
+			return
+		}
+	}
+
+	// 2. fincodeにカード登録
+	fincodeCard, err := h.fincodeRepo.RegisterCard(ctx, customer.FincodeCustomerID, req.Token)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register card in fincode"})
+		return
+	}
+
+	// 3. 既存カードを無効化して新規カード保存
+	if err := h.cardRepo.DeactivateAll(ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to deactivate cards"})
+		return
+	}
+	card := &domain.Card{
+		ID:               uuid.New(),
+		CustomerID:       customer.ID,
+		FincodeCardID:    fincodeCard.ID,
+		MaskedCardNumber: fincodeCard.MaskedCardNumber,
+		Expire:           fincodeCard.Expire,
+		Brand:            fincodeCard.Brand,
+		IsAlive:          true,
+		CreatedAt:        time.Now(),
+	}
+	if err := h.cardRepo.Save(ctx, card); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save card"})
+		return
+	}
+
+	c.JSON(http.StatusOK, registerCardResponse{
+		MaskedCardNumber: fincodeCard.MaskedCardNumber,
+		Expire:           fincodeCard.Expire,
+		Brand:            fincodeCard.Brand,
+	})
+}

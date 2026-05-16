@@ -19,11 +19,18 @@ func main() {
 	if secretKey == "" {
 		log.Fatal("FINCODE_SECRET_KEY is not set")
 	}
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		log.Fatal("BASE_URL is not set")
+	}
 
 	customerRepo := infrapostgres.NewCustomerRepository(db.DB)
 	cardRepo := infrapostgres.NewCardRepository(db.DB)
+	paymentRepo := infrapostgres.NewPaymentRepository(db.DB)
 	fincodeRepo := infrafincode.NewRepository(secretKey)
+
 	cardHandler := handler.NewCardHandler(customerRepo, cardRepo, fincodeRepo)
+	paymentHandler := handler.NewPaymentHandler(customerRepo, cardRepo, paymentRepo, fincodeRepo, baseURL)
 
 	r := gin.Default()
 
@@ -46,6 +53,7 @@ func main() {
 	{
 		api.GET("/cards/active", cardHandler.GetActive)
 		api.POST("/cards", cardHandler.Register)
+		api.POST("/payments", paymentHandler.Purchase)
 	}
 
 	r.Run(":8080")

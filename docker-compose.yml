@@ -21,6 +21,7 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/fincode_practice?sslmode=disable
       FINCODE_SECRET_KEY: ${FINCODE_SECRET_KEY}
+      BASE_URL: ${BASE_URL}
     depends_on:
       db:
         condition: service_healthy

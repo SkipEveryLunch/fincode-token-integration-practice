@@ -1,10 +1,11 @@
 package db
 
 import (
+	infrapostgres "fincode-token-practice/server/infrastructure/postgres"
 	"log"
 	"os"
 
-	"gorm.io/driver/postgres"
+	gormpg "gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -17,10 +18,18 @@ func Init() {
 	}
 
 	var err error
-	DB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	DB, err = gorm.Open(gormpg.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 
-	log.Println("database connected")
+	if err := DB.AutoMigrate(
+		&infrapostgres.Customer{},
+		&infrapostgres.Card{},
+		&infrapostgres.Payment{},
+	); err != nil {
+		log.Fatalf("failed to migrate: %v", err)
+	}
+
+	log.Println("database connected and migrated")
 }

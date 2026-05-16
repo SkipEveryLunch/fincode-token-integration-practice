@@ -44,6 +44,7 @@ func main() {
 
 	api := r.Group("/api")
 	{
+		api.GET("/cards/active", cardHandler.GetActive)
 		api.POST("/cards", cardHandler.Register)
 	}
 

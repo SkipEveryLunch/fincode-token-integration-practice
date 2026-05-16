@@ -37,6 +37,24 @@ type registerCardResponse struct {
 	Brand            string `json:"brand"`
 }
 
+func (h *CardHandler) GetActive(c *gin.Context) {
+	ctx := c.Request.Context()
+	card, err := h.cardRepo.FindActive(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get active card"})
+		return
+	}
+	if card == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no active card"})
+		return
+	}
+	c.JSON(http.StatusOK, registerCardResponse{
+		MaskedCardNumber: card.MaskedCardNumber,
+		Expire:           card.Expire,
+		Brand:            card.Brand,
+	})
+}
+
 func (h *CardHandler) Register(c *gin.Context) {
 	var req registerCardRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

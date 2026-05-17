@@ -22,6 +22,7 @@ services:
       DATABASE_URL: postgres://postgres:postgres@db:5432/fincode_practice?sslmode=disable
       FINCODE_SECRET_KEY: ${FINCODE_SECRET_KEY}
       BASE_URL: ${BASE_URL}
+      FINCODE_WEBHOOK_SECRET: ${FINCODE_WEBHOOK_SECRET}
     depends_on:
       db:
         condition: service_healthy

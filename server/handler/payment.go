@@ -1,7 +1,12 @@
 package handler
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fincode-token-practice/server/domain"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -11,11 +16,12 @@ import (
 )
 
 type PaymentHandler struct {
-	customerRepo domain.CustomerRepository
-	cardRepo     domain.CardRepository
-	paymentRepo  domain.PaymentRepository
-	fincodeRepo  domain.FincodeRepository
-	baseURL      string
+	customerRepo  domain.CustomerRepository
+	cardRepo      domain.CardRepository
+	paymentRepo   domain.PaymentRepository
+	fincodeRepo   domain.FincodeRepository
+	baseURL       string
+	webhookSecret string
 }
 
 func NewPaymentHandler(
@@ -24,13 +30,15 @@ func NewPaymentHandler(
 	paymentRepo domain.PaymentRepository,
 	fincodeRepo domain.FincodeRepository,
 	baseURL string,
+	webhookSecret string,
 ) *PaymentHandler {
 	return &PaymentHandler{
-		customerRepo: customerRepo,
-		cardRepo:     cardRepo,
-		paymentRepo:  paymentRepo,
-		fincodeRepo:  fincodeRepo,
-		baseURL:      baseURL,
+		customerRepo:  customerRepo,
+		cardRepo:      cardRepo,
+		paymentRepo:   paymentRepo,
+		fincodeRepo:   fincodeRepo,
+		baseURL:       baseURL,
+		webhookSecret: webhookSecret,
 	}
 }
 
@@ -136,8 +144,25 @@ type webhookRequest struct {
 }
 
 func (h *PaymentHandler) Webhook(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Printf("[Webhook] failed to read body: %v", err)
+		c.Status(http.StatusOK)
+		return
+	}
+
+	sig := c.GetHeader("Fincode-Signature")
+	mac := hmac.New(sha256.New, []byte(h.webhookSecret))
+	mac.Write(body)
+	expected := hex.EncodeToString(mac.Sum(nil))
+	if !hmac.Equal([]byte(expected), []byte(sig)) {
+		log.Printf("[Webhook] invalid signature")
+		c.Status(http.StatusUnauthorized)
+		return
+	}
+
 	var req webhookRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := json.Unmarshal(body, &req); err != nil {
 		log.Printf("[Webhook] failed to parse body: %v", err)
 		c.Status(http.StatusOK)
 		return

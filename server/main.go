@@ -23,6 +23,10 @@ func main() {
 	if baseURL == "" {
 		log.Fatal("BASE_URL is not set")
 	}
+	webhookSecret := os.Getenv("FINCODE_WEBHOOK_SECRET")
+	if webhookSecret == "" {
+		log.Fatal("FINCODE_WEBHOOK_SECRET is not set")
+	}
 
 	customerRepo := infrapostgres.NewCustomerRepository(db.DB)
 	cardRepo := infrapostgres.NewCardRepository(db.DB)
@@ -30,7 +34,7 @@ func main() {
 	fincodeRepo := infrafincode.NewRepository(secretKey)
 
 	cardHandler := handler.NewCardHandler(customerRepo, cardRepo, fincodeRepo)
-	paymentHandler := handler.NewPaymentHandler(customerRepo, cardRepo, paymentRepo, fincodeRepo, baseURL)
+	paymentHandler := handler.NewPaymentHandler(customerRepo, cardRepo, paymentRepo, fincodeRepo, baseURL, webhookSecret)
 
 	r := gin.Default()
 

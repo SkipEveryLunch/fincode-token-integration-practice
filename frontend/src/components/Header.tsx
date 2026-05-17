@@ -7,6 +7,7 @@ export default function Header() {
         <NavLink to="/card">カード確認</NavLink>
         <NavLink to="/card/register">カード登録・更新</NavLink>
         <NavLink to="/purchase">購入</NavLink>
+        <NavLink to="/payments">購入履歴</NavLink>
       </nav>
     </header>
   );

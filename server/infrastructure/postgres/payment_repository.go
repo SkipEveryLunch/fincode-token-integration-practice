@@ -19,7 +19,7 @@ func NewPaymentRepository(db *gorm.DB) *PaymentRepository {
 }
 
 func (r *PaymentRepository) Save(ctx context.Context, p *domain.Payment) error {
-	m := Payment{
+	record := Payment{
 		ID:               p.ID,
 		CardID:           p.CardID,
 		FincodePaymentID: p.FincodePaymentID,
@@ -28,34 +28,34 @@ func (r *PaymentRepository) Save(ctx context.Context, p *domain.Payment) error {
 		Status:           p.Status,
 		CreatedAt:        p.CreatedAt,
 	}
-	if err := r.db.WithContext(ctx).Create(&m).Error; err != nil {
+	if err := r.db.WithContext(ctx).Create(&record).Error; err != nil {
 		return fmt.Errorf("PaymentRepository.Save: %w", err)
 	}
 	return nil
 }
 
 func (r *PaymentRepository) FindAll(ctx context.Context) ([]*domain.Payment, error) {
-	var ms []Payment
-	if err := r.db.WithContext(ctx).Order("created_at desc").Find(&ms).Error; err != nil {
+	var records []Payment
+	if err := r.db.WithContext(ctx).Order("created_at desc").Find(&records).Error; err != nil {
 		return nil, fmt.Errorf("PaymentRepository.FindAll: %w", err)
 	}
-	payments := make([]*domain.Payment, len(ms))
-	for i, m := range ms {
-		payments[i] = toPayment(m)
+	payments := make([]*domain.Payment, len(records))
+	for i, record := range records {
+		payments[i] = toPayment(record)
 	}
 	return payments, nil
 }
 
 func (r *PaymentRepository) FindByFincodePaymentID(ctx context.Context, fincodePaymentID string) (*domain.Payment, error) {
-	var m Payment
-	err := r.db.WithContext(ctx).Where("fincode_payment_id = ?", fincodePaymentID).First(&m).Error
+	var record Payment
+	err := r.db.WithContext(ctx).Where("fincode_payment_id = ?", fincodePaymentID).First(&record).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("PaymentRepository.FindByFincodePaymentID: %w", err)
 	}
-	return toPayment(m), nil
+	return toPayment(record), nil
 }
 
 func (r *PaymentRepository) UpdateStatus(ctx context.Context, id uuid.UUID, status domain.PaymentStatus) error {
@@ -65,14 +65,14 @@ func (r *PaymentRepository) UpdateStatus(ctx context.Context, id uuid.UUID, stat
 	return nil
 }
 
-func toPayment(m Payment) *domain.Payment {
+func toPayment(record Payment) *domain.Payment {
 	return &domain.Payment{
-		ID:               m.ID,
-		CardID:           m.CardID,
-		FincodePaymentID: m.FincodePaymentID,
-		FincodeAccessID:  m.FincodeAccessID,
-		Amount:           m.Amount,
-		Status:           m.Status,
-		CreatedAt:        m.CreatedAt,
+		ID:               record.ID,
+		CardID:           record.CardID,
+		FincodePaymentID: record.FincodePaymentID,
+		FincodeAccessID:  record.FincodeAccessID,
+		Amount:           record.Amount,
+		Status:           record.Status,
+		CreatedAt:        record.CreatedAt,
 	}
 }

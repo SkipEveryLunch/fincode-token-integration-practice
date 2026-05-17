@@ -18,15 +18,15 @@ func NewCardRepository(db *gorm.DB) *CardRepository {
 }
 
 func (r *CardRepository) FindActive(ctx context.Context) (*domain.Card, error) {
-	var m Card
-	err := r.db.WithContext(ctx).Where("is_alive = ?", true).First(&m).Error
+	var record Card
+	err := r.db.WithContext(ctx).Where("is_alive = ?", true).First(&record).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("CardRepository.FindActive: %w", err)
 	}
-	return toCard(m), nil
+	return toCard(record), nil
 }
 
 func (r *CardRepository) DeactivateAll(ctx context.Context) error {
@@ -37,7 +37,7 @@ func (r *CardRepository) DeactivateAll(ctx context.Context) error {
 }
 
 func (r *CardRepository) Save(ctx context.Context, c *domain.Card) error {
-	m := Card{
+	record := Card{
 		ID:               c.ID,
 		CustomerID:       c.CustomerID,
 		FincodeCardID:    c.FincodeCardID,
@@ -47,21 +47,21 @@ func (r *CardRepository) Save(ctx context.Context, c *domain.Card) error {
 		IsAlive:          c.IsAlive,
 		CreatedAt:        c.CreatedAt,
 	}
-	if err := r.db.WithContext(ctx).Create(&m).Error; err != nil {
+	if err := r.db.WithContext(ctx).Create(&record).Error; err != nil {
 		return fmt.Errorf("CardRepository.Save: %w", err)
 	}
 	return nil
 }
 
-func toCard(m Card) *domain.Card {
+func toCard(record Card) *domain.Card {
 	return &domain.Card{
-		ID:               m.ID,
-		CustomerID:       m.CustomerID,
-		FincodeCardID:    m.FincodeCardID,
-		MaskedCardNumber: m.MaskedCardNumber,
-		Expire:           m.Expire,
-		Brand:            m.Brand,
-		IsAlive:          m.IsAlive,
-		CreatedAt:        m.CreatedAt,
+		ID:               record.ID,
+		CustomerID:       record.CustomerID,
+		FincodeCardID:    record.FincodeCardID,
+		MaskedCardNumber: record.MaskedCardNumber,
+		Expire:           record.Expire,
+		Brand:            record.Brand,
+		IsAlive:          record.IsAlive,
+		CreatedAt:        record.CreatedAt,
 	}
 }

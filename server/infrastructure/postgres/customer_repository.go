@@ -18,33 +18,33 @@ func NewCustomerRepository(db *gorm.DB) *CustomerRepository {
 }
 
 func (r *CustomerRepository) Get(ctx context.Context) (*domain.Customer, error) {
-	var m Customer
-	err := r.db.WithContext(ctx).First(&m).Error
+	var record Customer
+	err := r.db.WithContext(ctx).First(&record).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("CustomerRepository.Get: %w", err)
 	}
-	return toCustomer(m), nil
+	return toCustomer(record), nil
 }
 
 func (r *CustomerRepository) Save(ctx context.Context, c *domain.Customer) error {
-	m := Customer{
+	record := Customer{
 		ID:                c.ID,
 		FincodeCustomerID: c.FincodeCustomerID,
 		CreatedAt:         c.CreatedAt,
 	}
-	if err := r.db.WithContext(ctx).Create(&m).Error; err != nil {
+	if err := r.db.WithContext(ctx).Create(&record).Error; err != nil {
 		return fmt.Errorf("CustomerRepository.Save: %w", err)
 	}
 	return nil
 }
 
-func toCustomer(m Customer) *domain.Customer {
+func toCustomer(record Customer) *domain.Customer {
 	return &domain.Customer{
-		ID:                m.ID,
-		FincodeCustomerID: m.FincodeCustomerID,
-		CreatedAt:         m.CreatedAt,
+		ID:                record.ID,
+		FincodeCustomerID: record.FincodeCustomerID,
+		CreatedAt:         record.CreatedAt,
 	}
 }

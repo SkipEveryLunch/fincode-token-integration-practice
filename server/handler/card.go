@@ -2,6 +2,7 @@ package handler
 
 import (
 	"fincode-token-practice/server/domain"
+	"log"
 	"net/http"
 	"time"
 
@@ -90,6 +91,7 @@ func (h *CardHandler) Register(c *gin.Context) {
 	// 2. fincodeにカード登録
 	fincodeCard, err := h.fincodeRepo.RegisterCard(ctx, customer.FincodeCustomerID, req.Token)
 	if err != nil {
+		log.Printf("RegisterCard error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register card in fincode"})
 		return
 	}

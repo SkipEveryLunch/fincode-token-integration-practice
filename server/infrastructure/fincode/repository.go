@@ -104,6 +104,7 @@ func (r *Repository) CreatePayment(ctx context.Context) (*domain.FincodePayment,
 		"pay_type": "Card",
 		"job_code": "CAPTURE",
 		"amount":   "500",
+		"tds_type": "2",
 	}, map[string]string{
 		"Idempotency-Key": uuid.New().String(),
 	})
@@ -129,13 +130,12 @@ type executePaymentResp struct {
 }
 
 func (r *Repository) ExecutePayment(ctx context.Context, id, accessID, customerID, cardID, method, returnURL, returnURLOnFailure string) (string, error) {
-	resp, err := r.request(ctx, http.MethodPut, "/v1/payments/"+id, map[string]string{
+	resp, err := r.request(ctx, http.MethodPut, "/v1/payments/"+id, map[string]any{
 		"pay_type":              "Card",
 		"access_id":             accessID,
 		"customer_id":           customerID,
 		"card_id":               cardID,
 		"method":                method,
-		"tds_type":              "2",
 		"return_url":            returnURL,
 		"return_url_on_failure": returnURLOnFailure,
 	}, nil)

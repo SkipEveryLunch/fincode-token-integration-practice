@@ -120,3 +120,51 @@ func (h *PaymentHandler) Purchase(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"redirect_url": redirectURL})
 }
+
+func (h *PaymentHandler) Callback(c *gin.Context) {
+	c.Status(http.StatusOK)
+}
+
+func (h *PaymentHandler) Failure(c *gin.Context) {
+	c.Status(http.StatusOK)
+}
+
+type webhookRequest struct {
+	OrderID string `json:"order_id"`
+	Status  string `json:"status"`
+	Event   string `json:"event"`
+}
+
+func (h *PaymentHandler) Webhook(c *gin.Context) {
+	var req webhookRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[Webhook] failed to parse body: %v", err)
+		c.Status(http.StatusOK)
+		return
+	}
+	log.Printf("[Webhook] order_id=%s status=%s event=%s", req.OrderID, req.Status, req.Event)
+
+	ctx := c.Request.Context()
+	payment, err := h.paymentRepo.FindByFincodePaymentID(ctx, req.OrderID)
+	if err != nil || payment == nil {
+		log.Printf("[Webhook] payment not found: order_id=%s err=%v", req.OrderID, err)
+		c.Status(http.StatusOK)
+		return
+	}
+
+	var newStatus domain.PaymentStatus
+	switch req.Status {
+	case "CAPTURED":
+		newStatus = domain.PaymentStatusCaptured
+	default:
+		newStatus = domain.PaymentStatusFailed
+	}
+
+	if err := h.paymentRepo.UpdateStatus(ctx, payment.ID, newStatus); err != nil {
+		log.Printf("[Webhook] UpdateStatus error: %v", err)
+	} else {
+		log.Printf("[Webhook] updated payment %s -> %s", payment.ID, newStatus)
+	}
+
+	c.Status(http.StatusOK)
+}

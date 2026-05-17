@@ -55,6 +55,11 @@ func main() {
 		api.POST("/cards", cardHandler.Register)
 		api.GET("/payments", paymentHandler.List)
 		api.POST("/payments", paymentHandler.Purchase)
+		api.POST("/payments/callback", paymentHandler.Callback)
+		api.GET("/payments/callback", paymentHandler.Callback)
+		api.POST("/payments/failure", paymentHandler.Failure)
+		api.GET("/payments/failure", paymentHandler.Failure)
+		api.POST("/payments/webhook", paymentHandler.Webhook)
 	}
 
 	r.Run(":8080")

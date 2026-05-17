@@ -53,6 +53,7 @@ func main() {
 	{
 		api.GET("/cards/active", cardHandler.GetActive)
 		api.POST("/cards", cardHandler.Register)
+		api.GET("/payments", paymentHandler.List)
 		api.POST("/payments", paymentHandler.Purchase)
 	}
 

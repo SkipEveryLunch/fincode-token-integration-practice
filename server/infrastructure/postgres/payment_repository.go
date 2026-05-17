@@ -34,6 +34,18 @@ func (r *PaymentRepository) Save(ctx context.Context, p *domain.Payment) error {
 	return nil
 }
 
+func (r *PaymentRepository) FindAll(ctx context.Context) ([]*domain.Payment, error) {
+	var ms []Payment
+	if err := r.db.WithContext(ctx).Order("created_at desc").Find(&ms).Error; err != nil {
+		return nil, fmt.Errorf("PaymentRepository.FindAll: %w", err)
+	}
+	payments := make([]*domain.Payment, len(ms))
+	for i, m := range ms {
+		payments[i] = toPayment(m)
+	}
+	return payments, nil
+}
+
 func (r *PaymentRepository) FindByFincodePaymentID(ctx context.Context, fincodePaymentID string) (*domain.Payment, error) {
 	var m Payment
 	err := r.db.WithContext(ctx).Where("fincode_payment_id = ?", fincodePaymentID).First(&m).Error

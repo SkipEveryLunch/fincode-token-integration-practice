@@ -27,6 +27,7 @@ type Payment struct {
 
 type PaymentRepository interface {
 	Save(ctx context.Context, payment *Payment) error
+	FindAll(ctx context.Context) ([]*Payment, error)
 	FindByFincodePaymentID(ctx context.Context, fincodePaymentID string) (*Payment, error)
 	UpdateStatus(ctx context.Context, id uuid.UUID, status PaymentStatus) error
 }

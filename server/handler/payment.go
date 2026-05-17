@@ -34,6 +34,24 @@ func NewPaymentHandler(
 	}
 }
 
+func (h *PaymentHandler) List(c *gin.Context) {
+	payments, err := h.paymentRepo.FindAll(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get payments"})
+		return
+	}
+	type item struct {
+		Amount    int                  `json:"amount"`
+		Status    domain.PaymentStatus `json:"status"`
+		CreatedAt time.Time            `json:"created_at"`
+	}
+	res := make([]item, len(payments))
+	for i, p := range payments {
+		res[i] = item{Amount: p.Amount, Status: p.Status, CreatedAt: p.CreatedAt}
+	}
+	c.JSON(http.StatusOK, res)
+}
+
 type purchaseRequest struct {
 	Method string `json:"method" binding:"required,oneof=1 2"`
 }

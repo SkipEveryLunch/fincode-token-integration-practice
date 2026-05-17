@@ -97,21 +97,6 @@ func (h *PaymentHandler) Purchase(c *gin.Context) {
 		return
 	}
 
-	redirectURL, err := h.fincodeRepo.ExecutePayment(ctx,
-		fincodePayment.ID,
-		fincodePayment.AccessID,
-		customer.FincodeCustomerID,
-		card.FincodeCardID,
-		req.Method,
-		h.baseURL+"/api/payments/callback",
-		h.baseURL+"/api/payments/failure",
-	)
-	if err != nil {
-		log.Printf("ExecutePayment error: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to execute payment"})
-		return
-	}
-
 	payment := &domain.Payment{
 		ID:               uuid.New(),
 		CardID:           card.ID,
@@ -124,6 +109,21 @@ func (h *PaymentHandler) Purchase(c *gin.Context) {
 	if err := h.paymentRepo.Save(ctx, payment); err != nil {
 		log.Printf("PaymentRepository.Save error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save payment"})
+		return
+	}
+
+	redirectURL, err := h.fincodeRepo.ExecutePayment(ctx,
+		fincodePayment.ID,
+		fincodePayment.AccessID,
+		customer.FincodeCustomerID,
+		card.FincodeCardID,
+		req.Method,
+		h.baseURL+"/api/payments/callback",
+		h.baseURL+"/api/payments/failure",
+	)
+	if err != nil {
+		log.Printf("ExecutePayment error: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to execute payment"})
 		return
 	}
 

@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function PurchasePage() {
+  const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
   const handlePurchase = async () => {
@@ -21,7 +23,7 @@ export default function PurchasePage() {
       if (redirect_url) {
         window.location.href = redirect_url;
       } else {
-        alert('購入しました！');
+        navigate('/purchase/success');
       }
     } catch (e) {
       setError(`購入に失敗しました: ${e}`);

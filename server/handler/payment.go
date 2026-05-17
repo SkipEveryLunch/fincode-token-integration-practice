@@ -2,8 +2,6 @@ package handler
 
 import (
 	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fincode-token-practice/server/domain"
 	"io"
@@ -152,10 +150,7 @@ func (h *PaymentHandler) Webhook(c *gin.Context) {
 	}
 
 	sig := c.GetHeader("Fincode-Signature")
-	mac := hmac.New(sha256.New, []byte(h.webhookSecret))
-	mac.Write(body)
-	expected := hex.EncodeToString(mac.Sum(nil))
-	if !hmac.Equal([]byte(expected), []byte(sig)) {
+	if !hmac.Equal([]byte(sig), []byte(h.webhookSecret)) {
 		log.Printf("[Webhook] invalid signature")
 		c.Status(http.StatusUnauthorized)
 		return
@@ -179,7 +174,7 @@ func (h *PaymentHandler) Webhook(c *gin.Context) {
 
 	var newStatus domain.PaymentStatus
 	switch req.Status {
-	case "CAPTURED":
+	case "CAPTURED", "AUTHENTICATED":
 		newStatus = domain.PaymentStatusCaptured
 	default:
 		newStatus = domain.PaymentStatusFailed

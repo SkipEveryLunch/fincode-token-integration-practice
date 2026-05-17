@@ -19,6 +19,7 @@ type PaymentHandler struct {
 	paymentRepo   domain.PaymentRepository
 	fincodeRepo   domain.FincodeRepository
 	baseURL       string
+	frontBaseURL  string
 	webhookSecret string
 }
 
@@ -28,6 +29,7 @@ func NewPaymentHandler(
 	paymentRepo domain.PaymentRepository,
 	fincodeRepo domain.FincodeRepository,
 	baseURL string,
+	frontBaseURL string,
 	webhookSecret string,
 ) *PaymentHandler {
 	return &PaymentHandler{
@@ -36,6 +38,7 @@ func NewPaymentHandler(
 		paymentRepo:   paymentRepo,
 		fincodeRepo:   fincodeRepo,
 		baseURL:       baseURL,
+		frontBaseURL:  frontBaseURL,
 		webhookSecret: webhookSecret,
 	}
 }
@@ -128,11 +131,17 @@ func (h *PaymentHandler) Purchase(c *gin.Context) {
 }
 
 func (h *PaymentHandler) Callback(c *gin.Context) {
-	c.Status(http.StatusOK)
+	errorCode := c.PostForm("error_code")
+	if errorCode != "" {
+		log.Printf("[Callback] error_code=%s", errorCode)
+		c.Redirect(http.StatusFound, h.frontBaseURL+"/purchase/failure")
+		return
+	}
+	c.Redirect(http.StatusFound, h.frontBaseURL+"/purchase/success")
 }
 
 func (h *PaymentHandler) Failure(c *gin.Context) {
-	c.Status(http.StatusOK)
+	c.Redirect(http.StatusFound, h.frontBaseURL+"/purchase/failure")
 }
 
 type webhookRequest struct {

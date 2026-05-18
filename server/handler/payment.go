@@ -183,7 +183,7 @@ func (h *PaymentHandler) Webhook(c *gin.Context) {
 
 	var newStatus domain.PaymentStatus
 	switch req.Status {
-	case "CAPTURED", "AUTHENTICATED":
+	case "CAPTURED":
 		newStatus = domain.PaymentStatusCaptured
 	default:
 		newStatus = domain.PaymentStatusFailed

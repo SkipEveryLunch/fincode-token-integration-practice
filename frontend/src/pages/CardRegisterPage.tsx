@@ -1,43 +1,39 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCardToken } from '@fincode/js';
-import type { FincodeInstance, FincodeUI } from '@fincode/js';
+import type { FincodeInstance } from '@fincode/js';
 
 export default function CardRegisterPage() {
   const fincodeRef = useRef<FincodeInstance | null>(null);
-  const uiRef = useRef<FincodeUI | null>(null);
-  const initStarted = useRef(false);
-  const [ready, setReady] = useState(false);
+  const [cardNo, setCardNo] = useState('');
+  const [expireYear, setExpireYear] = useState('');
+  const [expireMonth, setExpireMonth] = useState('');
+  const [holderName, setHolderName] = useState('');
+  const [securityCode, setSecurityCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (initStarted.current) return;
-    initStarted.current = true;
-
-    try {
-      const fc = window.Fincode(import.meta.env.VITE_FINCODE_PUBLIC_KEY);
-      const ui = fc.ui({ layout: 'horizontal' });
-      ui.create('token', { layout: 'horizontal' });
-      ui.mount('fincode-ui', '400');
-      fincodeRef.current = fc;
-      uiRef.current = ui;
-      setReady(true);
-    } catch (e) {
-      setError(`fincode の初期化に失敗しました: ${e}`);
-    }
+    fincodeRef.current = window.Fincode(import.meta.env.VITE_FINCODE_PUBLIC_KEY);
   }, []);
 
   const handleConfirm = async () => {
-    if (!fincodeRef.current || !uiRef.current) return;
+    if (!fincodeRef.current) return;
     setError(null);
+
+    const expire = expireYear.slice(-2) + expireMonth.padStart(2, '0');
+    const normalizedCardNo = cardNo.replace(/\D/g, '');
+
     try {
-      const tokenResult = await getCardToken({
-        fincode: fincodeRef.current,
-        ui: uiRef.current,
-        number: '1',
+      const token = await new Promise<string>((resolve, reject) => {
+        fincodeRef.current!.tokens(
+          { card_no: normalizedCardNo, expire, holder_name: holderName, security_code: securityCode, number: '1' },
+          (status, response) => {
+            if (status === 200) resolve(response.list[0].token);
+            else reject(new Error(`トークン取得失敗: status ${status} body ${JSON.stringify(response)}`));
+          },
+          () => reject(new Error('トークン取得中に通信エラーが発生しました')),
+        );
       });
-      const token = tokenResult.list[0].token;
 
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/cards`, {
         method: 'POST',
@@ -59,10 +55,27 @@ export default function CardRegisterPage() {
     <div>
       <h1>カード登録・更新</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      <div id="fincode-ui">
-        <div id="fincode-ui-form" />
+      <div>
+        <div>
+          <label>カード番号</label>
+          <input value={cardNo} onChange={e => setCardNo(e.target.value)} placeholder="1234567890123456" />
+        </div>
+        <div>
+          <label>有効期限</label>
+          <input value={expireMonth} onChange={e => setExpireMonth(e.target.value)} placeholder="MM" maxLength={2} />
+          <span>/</span>
+          <input value={expireYear} onChange={e => setExpireYear(e.target.value)} placeholder="YY" maxLength={2} />
+        </div>
+        <div>
+          <label>カード名義人</label>
+          <input value={holderName} onChange={e => setHolderName(e.target.value)} placeholder="TARO YAMADA" />
+        </div>
+        <div>
+          <label>セキュリティコード</label>
+          <input value={securityCode} onChange={e => setSecurityCode(e.target.value)} placeholder="123" maxLength={4} />
+        </div>
       </div>
-      {ready && <button onClick={handleConfirm}>確認へ</button>}
+      <button onClick={handleConfirm}>確認へ</button>
     </div>
   );
 }

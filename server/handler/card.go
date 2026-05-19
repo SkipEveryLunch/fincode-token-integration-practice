@@ -65,7 +65,7 @@ func (h *CardHandler) Register(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	// 1. カスタマーシングルトン upsert
+	// 1. カスタマーシングルトン upsert（既存なら取得）
 	customer, err := h.customerRepo.Get(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get customer"})
@@ -88,7 +88,14 @@ func (h *CardHandler) Register(c *gin.Context) {
 		}
 	}
 
-	// 2. fincodeにカード登録
+	// 2. 既存アクティブカードを取得（後で削除するため）
+	oldCard, err := h.cardRepo.FindActive(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get active card"})
+		return
+	}
+
+	// 3. fincodeにカード登録
 	fincodeCard, err := h.fincodeRepo.RegisterCard(ctx, customer.FincodeCustomerID, req.Token)
 	if err != nil {
 		log.Printf("RegisterCard error: %v", err)
@@ -96,7 +103,14 @@ func (h *CardHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// 3. 既存カードを無効化して新規カード保存
+	// 4. 旧カードをfincodeから削除（新カード登録成功後）
+	if oldCard != nil {
+		if err := h.fincodeRepo.DeleteCard(ctx, customer.FincodeCustomerID, oldCard.FincodeCardID); err != nil {
+			log.Printf("DeleteCard error (non-fatal): %v", err)
+		}
+	}
+
+	// 5. 既存カードを無効化して新規カード保存
 	if err := h.cardRepo.DeactivateAll(ctx); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to deactivate cards"})
 		return

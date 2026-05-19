@@ -20,6 +20,7 @@ type FincodePayment struct {
 type FincodeRepository interface {
 	CreateCustomer(ctx context.Context, customerID, email string) error
 	RegisterCard(ctx context.Context, customerID, token string) (*FincodeCard, error)
+	DeleteCard(ctx context.Context, customerID, cardID string) error
 	// CreatePayment は決済を作成してIDとアクセスIDを返す。
 	CreatePayment(ctx context.Context) (*FincodePayment, error)
 	// ExecutePayment は決済を実行してリダイレクト先URLを返す。tds_type=2 で3DS認証が自動で走る。

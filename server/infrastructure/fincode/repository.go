@@ -63,6 +63,18 @@ func (r *Repository) CreateCustomer(ctx context.Context, customerID, email strin
 	return nil
 }
 
+func (r *Repository) DeleteCard(ctx context.Context, customerID, cardID string) error {
+	resp, err := r.request(ctx, http.MethodDelete, "/v1/customers/"+customerID+"/cards/"+cardID, nil, nil)
+	if err != nil {
+		return fmt.Errorf("FincodeRepository.DeleteCard: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("FincodeRepository.DeleteCard: status %d body %s", resp.StatusCode, readErrorBody(resp))
+	}
+	return nil
+}
+
 type registerCardResp struct {
 	ID     string `json:"id"`
 	CardNo string `json:"card_no"`
